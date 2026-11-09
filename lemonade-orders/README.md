@@ -43,25 +43,16 @@ pages show a "Test mode" badge while this is on.
 
 ## Set up texts (Twilio)
 
-1. Create a Twilio account and buy a phone number (about $1–2/month plus about 1¢ per text).
-2. Put your **Account SID**, **Auth Token** and the number in `.env`.
-3. **US numbers must be registered before they can text customers.** In the Twilio
-   console, finish *A2P 10DLC* registration (a "Sole Proprietor" or nonprofit brand works),
-   or use a **toll-free number** and complete toll-free verification. Plan for a few
-   days to a couple of weeks for approval, and do it well before your first Sunday.
-4. Ask each customer if they want texts. The cashier checkbox records their answer.
-   Every first text includes "Reply STOP to opt out", and Twilio handles STOP for you.
+Follow **[TWILIO_SETUP.md](TWILIO_SETUP.md)**. It covers the account and phone number, the US carrier registration
+(with ready-to-paste form answers), the `.env` keys, and testing with `npm run test-sms -- <your number>`.
+Start at least two weeks before you need it, because registration approval takes time.
 
 ## Set up email
 
-Any SMTP account works. With Gmail:
+Follow **[EMAIL_SETUP.md](EMAIL_SETUP.md)** (about 10 minutes with Gmail). It covers creating an App Password,
+the `.env` lines, and testing with `npm run test-email`.
 
-1. Turn on 2-Step Verification on the Google account.
-2. Create an **App Password** at <https://myaccount.google.com/apppasswords>.
-3. In `.env`, set `SMTP_USER` to the Gmail address, `SMTP_PASS` to the app password, and
-   `ORGANIZER_EMAIL` to the address that should get each order.
-
-Each email subject looks like `Order #7 - Jane - $11.00 - 2:14 PM`, so your inbox sorts
+Each email subject looks like `Order #7 - Jane - $10.00 - 2:14 PM`, so your inbox sorts
 in the same order customers ordered.
 
 ## Change the menu
