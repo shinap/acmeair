@@ -6,7 +6,8 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "test-sms": "node scripts/send-test-text.js"
   },
   "engines": {
     "node": ">=18"

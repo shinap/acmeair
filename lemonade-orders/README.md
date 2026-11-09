@@ -43,14 +43,9 @@ pages show a "Test mode" badge while this is on.
 
 ## Set up texts (Twilio)
 
-1. Create a Twilio account and buy a phone number (about $1–2/month plus about 1¢ per text).
-2. Put your **Account SID**, **Auth Token** and the number in `.env`.
-3. **US numbers must be registered before they can text customers.** In the Twilio
-   console, finish *A2P 10DLC* registration (a "Sole Proprietor" or nonprofit brand works),
-   or use a **toll-free number** and complete toll-free verification. Plan for a few
-   days to a couple of weeks for approval, and do it well before your first Sunday.
-4. Ask each customer if they want texts. The cashier checkbox records their answer.
-   Every first text includes "Reply STOP to opt out", and Twilio handles STOP for you.
+Follow **[TWILIO_SETUP.md](TWILIO_SETUP.md)**. It covers the account and phone number, the US carrier registration
+(with ready-to-paste form answers), the `.env` keys, and testing with `npm run test-sms -- <your number>`.
+Start at least two weeks before you need it, because registration approval takes time.
 
 ## Set up email
 
