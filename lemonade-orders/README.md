@@ -49,14 +49,10 @@ Start at least two weeks before you need it, because registration approval takes
 
 ## Set up email
 
-Any SMTP account works. With Gmail:
+Follow **[EMAIL_SETUP.md](EMAIL_SETUP.md)** (about 10 minutes with Gmail). It covers creating an App Password,
+the `.env` lines, and testing with `npm run test-email`.
 
-1. Turn on 2-Step Verification on the Google account.
-2. Create an **App Password** at <https://myaccount.google.com/apppasswords>.
-3. In `.env`, set `SMTP_USER` to the Gmail address, `SMTP_PASS` to the app password, and
-   `ORGANIZER_EMAIL` to the address that should get each order.
-
-Each email subject looks like `Order #7 - Jane - $11.00 - 2:14 PM`, so your inbox sorts
+Each email subject looks like `Order #7 - Jane - $10.00 - 2:14 PM`, so your inbox sorts
 in the same order customers ordered.
 
 ## Change the menu
