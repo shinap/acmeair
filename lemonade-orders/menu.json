@@ -1,0 +1,15 @@
+{
+  "_comment": "Edit names and prices to match your stand. Prices are in dollars. An item with \"flavors\" lets the cashier pick one or more of them (mixes allowed). Restart the server after editing.",
+  "items": [
+    {
+      "id": "lemonade",
+      "name": "Lemonade",
+      "category": "Lemonade",
+      "price": 5.00,
+      "flavors": ["Strawberry", "Watermelon", "Coconut", "Passion Fruit"]
+    },
+    { "id": "chicken-pastry", "name": "Chicken Pastry", "category": "Food",  "price": 4.00 },
+    { "id": "games",          "name": "Games",          "category": "Games", "price": 5.00 }
+  ],
+  "paymentMethods": ["Cash", "Card (own terminal)", "Zelle", "Venmo", "Cash App", "Other"]
+}

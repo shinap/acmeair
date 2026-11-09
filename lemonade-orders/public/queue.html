@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order queue - Lemonade Orders</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1 id="event-name">Lemonade Fundraiser</h1>
+    <span class="mode" id="mode"></span>
+    <nav><a href="index.html">Cashier</a><a href="queue.html">Order queue</a></nav>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="stats" id="stats">Loading...</div>
+      <label class="check"><input type="checkbox" id="showDone"> Show picked up / cancelled</label>
+      <a class="btn" id="csv" href="api/orders.csv">Download today's orders (CSV)</a>
+    </div>
+    <p class="meta">First come, first served: work from the top. Marking an order <strong>Ready</strong> texts the customer.</p>
+    <div class="queue" id="queue"></div>
+  </main>
+
+  <script src="queue.js"></script>
+</body>
+</html>
