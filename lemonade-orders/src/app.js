@@ -46,9 +46,16 @@ function buildOrder(body, { menu, defaultCountryCode }) {
     const quantity = Number(line.quantity);
     if (!item) throw new ValidationError(`Unknown menu item: ${line.id}`);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) throw new ValidationError(`Bad quantity for ${item.name}.`);
-    const existing = items.find((i) => i.id === item.id);
+    const flavors = pickFlavors(item, line.flavors);
+    const name = flavors.length ? `${item.name} (${flavors.join(' + ')})` : item.name;
+    const existing = items.find((i) => i.id === item.id && i.name === name);
     if (existing) existing.quantity += quantity;
-    else items.push({ id: item.id, name: item.name, category: item.category, price: item.price, quantity });
+    else {
+      items.push({
+        id: item.id, name, category: item.category, price: item.price, quantity,
+        ...(flavors.length && { flavors }),
+      });
+    }
   }
   if (!items.length) throw new ValidationError('Add at least one item.');
   const total = round2(items.reduce((sum, i) => sum + i.price * i.quantity, 0));
@@ -65,6 +72,20 @@ function buildOrder(body, { menu, defaultCountryCode }) {
     notes: cleanText(body.notes, 200),
     cashier: cleanText(body.cashier, 40),
   };
+}
+
+/** Flavors chosen for an item, in menu order. Items with flavors need at least one; mixes are allowed. */
+function pickFlavors(item, chosen) {
+  if (!item.flavors) {
+    if (Array.isArray(chosen) && chosen.length) throw new ValidationError(`${item.name} has no flavors.`);
+    return [];
+  }
+  const wanted = new Set(Array.isArray(chosen) ? chosen : []);
+  for (const f of wanted) {
+    if (!item.flavors.includes(f)) throw new ValidationError(`Unknown ${item.name.toLowerCase()} flavor: ${f}`);
+  }
+  if (!wanted.size) throw new ValidationError(`Pick at least one flavor for the ${item.name.toLowerCase()}.`);
+  return item.flavors.filter((f) => wanted.has(f));
 }
 
 function buildPayment(input = {}, total, menu) {

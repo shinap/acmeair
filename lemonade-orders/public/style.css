@@ -102,3 +102,6 @@ textarea { min-height: 48px; resize: vertical; }
 .badge.fail { background: #fdecea; color: var(--warn); }
 .badge.ok { background: #f2f2f2; color: var(--muted); }
 a.btn { text-decoration: none; color: var(--ink); display: inline-block; }
+.item.flavored { grid-column: 1 / -1; cursor: default; display: grid; gap: 10px; }
+.item.flavored .chips .chip { padding: 10px 14px; }
+.item > strong { display: block; padding-right: 30px; }

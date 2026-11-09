@@ -2,7 +2,7 @@
 
 A small ordering system for the monthly (second-Sunday) lemonade fundraiser.
 
-- **Cashier screen**: tap items (lemonades, chicken pastry, game tickets), enter the
+- **Cashier screen**: tap items (lemonade, chicken pastry, games), enter the
   customer's name and mobile number, and record how they paid.
 - **No payments are processed.** The system only *records* the payment: method
   (cash, Zelle, Venmo, your own card reader...), whether it's paid now or at pickup,
@@ -67,6 +67,11 @@ in the same order customers ordered.
 ## Change the menu
 
 Edit `menu.json` (names, prices, categories, payment methods), then restart the server.
+
+The current menu: **Lemonade $5** (Strawberry, Watermelon, Coconut, Passion Fruit; the customer
+can pick one flavor or mix any of them), **Chicken Pastry $4**, and **Games $5**. Any item with a
+`flavors` list gets flavor buttons on the cashier screen. Each different mix becomes its own line
+on the order, so the team sees exactly what to make.
 
 ## Where the data lives
 

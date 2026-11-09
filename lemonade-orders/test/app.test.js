@@ -51,7 +51,7 @@ const sampleOrder = (overrides = {}) => ({
   customerName: 'Jane',
   phone: '(555) 123-4567',
   smsOptIn: true,
-  items: [{ id: 'classic-lemonade', quantity: 2 }, { id: 'chicken-pastry', quantity: 1 }],
+  items: [{ id: 'lemonade', flavors: ['Strawberry'], quantity: 2 }, { id: 'chicken-pastry', quantity: 1 }],
   payment: { method: 'Cash', status: 'paid', amountReceived: '20' },
   ...overrides,
 });
@@ -61,29 +61,48 @@ test('places an order, prices it from the menu, texts the customer and emails th
   t.after(() => ctx.server.close());
 
   const res = await post(ctx.base, '/api/orders', sampleOrder({
-    items: [{ id: 'classic-lemonade', quantity: 2, price: 0.01 }, { id: 'chicken-pastry', quantity: 1 }],
+    items: [{ id: 'lemonade', flavors: ['Strawberry'], quantity: 2, price: 0.01 }, { id: 'chicken-pastry', quantity: 1 }],
   }));
   assert.equal(res.status, 201);
   const order = await res.json();
   assert.equal(order.number, 1);
-  assert.equal(order.total, 11); // 2 x $3 + $5; the browser's price is ignored
+  assert.equal(order.total, 14); // 2 x $5 + $4; the browser's price is ignored
   assert.equal(order.phone, '+15551234567');
   assert.deepEqual(
     { method: order.payment.method, status: order.payment.status, received: order.payment.amountReceived, change: order.payment.change },
-    { method: 'Cash', status: 'paid', received: 20, change: 9 },
+    { method: 'Cash', status: 'paid', received: 20, change: 6 },
   );
 
   await settle();
   assert.equal(ctx.sms.length, 1);
   assert.equal(ctx.sms[0].To, '+15551234567');
-  assert.match(ctx.sms[0].Body, /order #1 \(\$11\.00\)/);
+  assert.match(ctx.sms[0].Body, /order #1 \(\$14\.00\)/);
   assert.equal(ctx.emails.length, 1);
   assert.equal(ctx.emails[0].to, 'owner@example.com');
-  assert.match(ctx.emails[0].subject, /^Order #1 - Jane - \$11\.00/);
-  assert.match(ctx.emails[0].text, /2 x Classic Lemonade/);
+  assert.match(ctx.emails[0].subject, /^Order #1 - Jane - \$14\.00/);
+  assert.match(ctx.emails[0].text, /2 x Lemonade \(Strawberry\) \(\$10\.00\)/);
 
   const saved = ctx.store.get(order.id);
   assert.deepEqual(saved.notifications.map((n) => [n.kind, n.ok]).sort(), [['email', true], ['placed', true]]);
+});
+
+test('lemonade flavors can be mixed; each mix is its own line, same mix in any order merges', async (t) => {
+  const ctx = await setup();
+  t.after(() => ctx.server.close());
+  const order = await (await post(ctx.base, '/api/orders', sampleOrder({
+    items: [
+      { id: 'lemonade', flavors: ['Coconut', 'Strawberry'], quantity: 1 },
+      { id: 'lemonade', flavors: ['Strawberry', 'Coconut'], quantity: 1 },
+      { id: 'lemonade', flavors: ['Watermelon', 'Passion Fruit'], quantity: 1 },
+      { id: 'games', quantity: 1 },
+    ],
+  }))).json();
+  assert.deepEqual(order.items.map((i) => [i.name, i.quantity]), [
+    ['Lemonade (Strawberry + Coconut)', 2],
+    ['Lemonade (Watermelon + Passion Fruit)', 1],
+    ['Games', 1],
+  ]);
+  assert.equal(order.total, 20);
 });
 
 test('queue lists orders first come, first served and numbers them in sequence', async (t) => {
@@ -130,7 +149,7 @@ test('pay-at-pickup orders can be marked paid later', async (t) => {
   assert.equal(order.payment.status, 'unpaid');
   const updated = await (await patch(ctx.base, `/api/orders/${order.id}/payment`, { method: 'Cash', status: 'paid' })).json();
   assert.equal(updated.payment.status, 'paid');
-  assert.equal(updated.payment.amountReceived, 11);
+  assert.equal(updated.payment.amountReceived, 14);
 });
 
 test('a failed text is recorded on the order and the order still goes through', async (t) => {
@@ -152,7 +171,10 @@ test('rejects bad input', async (t) => {
     [sampleOrder({ customerName: ' ' }), /name is required/],
     [sampleOrder({ items: [] }), /at least one item/],
     [sampleOrder({ items: [{ id: 'free-car', quantity: 1 }] }), /Unknown menu item/],
-    [sampleOrder({ items: [{ id: 'game-ticket', quantity: 0 }] }), /Bad quantity/],
+    [sampleOrder({ items: [{ id: 'games', quantity: 0 }] }), /Bad quantity/],
+    [sampleOrder({ items: [{ id: 'lemonade', quantity: 1 }] }), /at least one flavor/],
+    [sampleOrder({ items: [{ id: 'lemonade', flavors: ['Grape'], quantity: 1 }] }), /Unknown lemonade flavor/],
+    [sampleOrder({ items: [{ id: 'games', flavors: ['Coconut'], quantity: 1 }] }), /has no flavors/],
     [sampleOrder({ phone: '123' }), /phone number/],
     [sampleOrder({ payment: { method: 'Bitcoin', status: 'paid' } }), /how the customer is paying/],
     [sampleOrder({ payment: { method: 'Cash', status: 'paid', amountReceived: '5' } }), /at least the total/],
