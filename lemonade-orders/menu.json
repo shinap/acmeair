@@ -1,0 +1,13 @@
+{
+  "_comment": "Edit names and prices to match your stand. Prices are in dollars. Restart the server after editing.",
+  "items": [
+    { "id": "classic-lemonade",    "name": "Classic Lemonade",    "category": "Lemonade", "price": 3.00 },
+    { "id": "strawberry-lemonade", "name": "Strawberry Lemonade", "category": "Lemonade", "price": 4.00 },
+    { "id": "mango-lemonade",      "name": "Mango Lemonade",      "category": "Lemonade", "price": 4.00 },
+    { "id": "pink-lemonade",       "name": "Pink Lemonade",       "category": "Lemonade", "price": 3.50 },
+    { "id": "chicken-pastry",      "name": "Chicken Pastry",      "category": "Food",     "price": 5.00 },
+    { "id": "game-ticket",         "name": "Game Ticket",         "category": "Games",    "price": 1.00 },
+    { "id": "game-ticket-6",       "name": "6 Game Tickets",      "category": "Games",    "price": 5.00 }
+  ],
+  "paymentMethods": ["Cash", "Card (own terminal)", "Zelle", "Venmo", "Cash App", "Other"]
+}

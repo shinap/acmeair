@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cashier - Lemonade Orders</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1 id="event-name">Lemonade Fundraiser</h1>
+    <span class="mode" id="mode"></span>
+    <nav><a href="index.html">Cashier</a><a href="queue.html">Order queue</a></nav>
+  </header>
+
+  <main class="cashier">
+    <section class="panel">
+      <h2>Menu</h2>
+      <div id="menu"></div>
+    </section>
+
+    <form class="panel" id="order-form" autocomplete="off">
+      <h2>New order</h2>
+      <ul class="ticket-lines" id="lines"></ul>
+      <div class="total"><span>Total</span><span id="total">$0.00</span></div>
+
+      <label for="customerName">Customer name</label>
+      <input type="text" id="customerName" maxlength="60" required>
+
+      <label for="phone">Mobile number (for text updates)</label>
+      <input type="tel" id="phone" inputmode="tel" placeholder="(555) 123-4567">
+      <label class="check"><input type="checkbox" id="smsOptIn" checked> Customer agreed to get texts about this order</label>
+
+      <label>Payment method</label>
+      <div class="chips" id="methods"></div>
+
+      <label>Payment status</label>
+      <div class="chips">
+        <button type="button" class="chip on" data-paid="paid">Paid now</button>
+        <button type="button" class="chip" data-paid="unpaid">Pay at pickup</button>
+      </div>
+
+      <div id="received-wrap">
+        <label for="amountReceived">Amount received (leave blank if exact)</label>
+        <input type="number" id="amountReceived" min="0" step="0.01" inputmode="decimal">
+        <div class="change" id="change"></div>
+      </div>
+
+      <label for="notes">Notes (optional)</label>
+      <textarea id="notes" maxlength="200" placeholder="Less ice, no onions..."></textarea>
+
+      <label for="cashier">Cashier name</label>
+      <input type="text" id="cashier" maxlength="40">
+
+      <div class="error" id="error" role="alert"></div>
+      <button class="btn primary big" type="submit" id="submit">Place order</button>
+    </form>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="cashier.js"></script>
+</body>
+</html>
