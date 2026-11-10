@@ -45,6 +45,7 @@ const patch = (base, url, body) => fetch(base + url, {
 });
 
 const sampleOrder = (overrides = {}) => ({
+  customerName: 'Jane',
   items: [{ id: 'lemonade', flavors: ['Strawberry'], quantity: 2 }, { id: 'chicken-pastry', quantity: 1 }],
   payment: { method: 'Cash', status: 'paid', amountReceived: '20' },
   ...overrides,
@@ -61,8 +62,8 @@ test('places an order, prices it from the menu, and emails it to the organizer',
   const order = await res.json();
   assert.equal(order.number, 1);
   assert.equal(order.total, 14); // 2 x $5 + $4; the browser's price is ignored
+  assert.equal(order.customerName, 'Jane');
   assert.equal(order.phone, undefined);
-  assert.equal(order.customerName, undefined);
   assert.deepEqual(
     { method: order.payment.method, status: order.payment.status, received: order.payment.amountReceived, change: order.payment.change },
     { method: 'Cash', status: 'paid', received: 20, change: 6 },
@@ -71,20 +72,21 @@ test('places an order, prices it from the menu, and emails it to the organizer',
   await settle();
   assert.equal(ctx.emails.length, 1);
   assert.equal(ctx.emails[0].to, 'lrcncsocial@gmail.com');
-  assert.match(ctx.emails[0].subject, /^Order #1 - \$14\.00 - /);
+  assert.match(ctx.emails[0].subject, /^Order #1 - Jane - \$14\.00 - /);
+  assert.match(ctx.emails[0].text, /Customer:  Jane/);
   assert.match(ctx.emails[0].text, /2 x Lemonade \(Strawberry\) \(\$10\.00\)/);
-  assert.doesNotMatch(ctx.emails[0].text, /Phone|Customer/);
+  assert.doesNotMatch(ctx.emails[0].text, /Phone/);
   assert.deepEqual(ctx.store.get(order.id).notifications.map((n) => [n.kind, n.ok]), [['email', true]]);
 });
 
-test('phone number and customer name sent by an old page are ignored', async (t) => {
+test('a phone number sent by an old page is ignored', async (t) => {
   const ctx = await setup();
   t.after(() => ctx.server.close());
-  const order = await (await post(ctx.base, '/api/orders', sampleOrder({ customerName: 'Jane', phone: '555-123-4567', smsOptIn: true }))).json();
+  const order = await (await post(ctx.base, '/api/orders', sampleOrder({ phone: '555-123-4567', smsOptIn: true }))).json();
   assert.equal(order.phone, undefined);
-  assert.equal(order.customerName, undefined);
+  assert.equal(order.smsOptIn, undefined);
   const csv = await (await fetch(`${ctx.base}/api/orders.csv`)).text();
-  assert.doesNotMatch(csv, /Jane|555/);
+  assert.doesNotMatch(csv, /555/);
 });
 
 test('lemonade flavors can be mixed; each mix is its own line, same mix in any order merges', async (t) => {
@@ -109,11 +111,11 @@ test('lemonade flavors can be mixed; each mix is its own line, same mix in any o
 test('queue lists orders first come, first served and numbers them in sequence', async (t) => {
   const ctx = await setup();
   t.after(() => ctx.server.close());
-  for (const notes of ['first', 'second', 'third']) {
-    await post(ctx.base, '/api/orders', sampleOrder({ notes }));
+  for (const name of ['Ann', 'Ben', 'Cal']) {
+    await post(ctx.base, '/api/orders', sampleOrder({ customerName: name }));
   }
   const list = await (await fetch(`${ctx.base}/api/orders`)).json();
-  assert.deepEqual(list.map((o) => [o.number, o.notes]), [[1, 'first'], [2, 'second'], [3, 'third']]);
+  assert.deepEqual(list.map((o) => [o.number, o.customerName]), [[1, 'Ann'], [2, 'Ben'], [3, 'Cal']]);
 });
 
 test('status changes move orders through the queue without sending more email', async (t) => {
@@ -159,6 +161,7 @@ test('rejects bad input', async (t) => {
   const ctx = await setup();
   t.after(() => ctx.server.close());
   const cases = [
+    [sampleOrder({ customerName: '  ' }), /customer's name/],
     [sampleOrder({ items: [] }), /at least one item/],
     [sampleOrder({ items: [{ id: 'free-car', quantity: 1 }] }), /Unknown menu item/],
     [sampleOrder({ items: [{ id: 'games', quantity: 0 }] }), /Bad quantity/],
@@ -189,12 +192,12 @@ test('staff PIN protects every page and API', async (t) => {
 test('orders survive a restart and CSV export works', async (t) => {
   const ctx = await setup();
   t.after(() => ctx.server.close());
-  await post(ctx.base, '/api/orders', sampleOrder({ notes: 'less ice, please' }));
+  await post(ctx.base, '/api/orders', sampleOrder({ customerName: 'Doe, John' }));
   const reopened = new OrderStore({ dataDir: ctx.dataDir, timezone: 'America/New_York' });
   assert.equal(reopened.list().length, 1);
   const csv = await (await fetch(`${ctx.base}/api/orders.csv`)).text();
-  assert.match(csv, /^order_number,placed_at,items,total/);
-  assert.match(csv, /"less ice, please"/);
+  assert.match(csv, /^order_number,placed_at,customer,items,total/);
+  assert.match(csv, /"Doe, John"/);
 });
 
 test('order numbers restart each event day', () => {

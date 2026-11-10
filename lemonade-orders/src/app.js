@@ -28,6 +28,9 @@ function pinGuard(pin) {
 
 /** Turn the cashier's form into a trusted order (prices always come from the menu, never the browser). */
 function buildOrder(body, { menu }) {
+  const customerName = cleanText(body.customerName, 60);
+  if (!customerName) throw new ValidationError('Enter the customer\'s name.');
+
   const byId = new Map(menu.items.map((i) => [i.id, i]));
   const items = [];
   for (const line of Array.isArray(body.items) ? body.items : []) {
@@ -52,6 +55,7 @@ function buildOrder(body, { menu }) {
   const payment = buildPayment(body.payment, total, menu);
 
   return {
+    customerName,
     items,
     total,
     payment,
@@ -136,9 +140,9 @@ function createApp({ config, menu, store, notifier }) {
 
   app.get('/api/orders.csv', (req, res) => {
     const eventDate = req.query.date || store.today();
-    const header = ['order_number', 'placed_at', 'items', 'total', 'payment_method', 'payment_status', 'amount_received', 'change', 'status', 'notes', 'cashier'];
+    const header = ['order_number', 'placed_at', 'customer', 'items', 'total', 'payment_method', 'payment_status', 'amount_received', 'change', 'status', 'notes', 'cashier'];
     const rows = store.list({ eventDate }).map((o) => [
-      o.number, o.createdAt,
+      o.number, o.createdAt, o.customerName,
       o.items.map((i) => `${i.quantity} x ${i.name}`).join('; '),
       o.total.toFixed(2), o.payment.method, o.payment.status,
       o.payment.amountReceived.toFixed(2), o.payment.change.toFixed(2),

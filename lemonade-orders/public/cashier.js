@@ -140,9 +140,10 @@ function resetForm() {
   cart.clear();
   picking.clear();
   method = null;
-  ['amountReceived', 'notes'].forEach((id) => { $(id).value = ''; });
+  ['customerName', 'amountReceived', 'notes'].forEach((id) => { $(id).value = ''; });
   renderMethods();
   render();
+  $('customerName').focus();
 }
 
 $('order-form').addEventListener('submit', async (e) => {
@@ -153,6 +154,7 @@ $('order-form').addEventListener('submit', async (e) => {
   store.set('cashier', $('cashier').value);
 
   const body = {
+    customerName: $('customerName').value,
     items: [...cart.values()].map(({ id, flavors, quantity }) => ({ id, flavors, quantity })),
     payment: { method, status: paid, amountReceived: $('amountReceived').value },
     notes: $('notes').value,
@@ -166,7 +168,7 @@ $('order-form').addEventListener('submit', async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Could not place the order.');
     const change = data.payment.change > 0 ? ` Give ${money(data.payment.change)} change.` : '';
-    toast(`Order #${data.number} placed. Tell the customer their number is ${data.number}.${change}`);
+    toast(`Order #${data.number} placed for ${data.customerName}.${change}`);
     resetForm();
   } catch (err) {
     $('error').textContent = err.message;
@@ -185,4 +187,5 @@ $('order-form').addEventListener('submit', async (e) => {
   $('cashier').value = store.get('cashier') || '';
   renderMethods();
   render();
+  $('customerName').focus();
 }());

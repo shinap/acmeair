@@ -2,9 +2,9 @@
 
 A small ordering system for the monthly (second-Sunday) lemonade fundraiser.
 
-- **Cashier screen**: tap items (lemonade, chicken pastry, games) and record how the customer paid.
-  Each order gets a number (#1, #2, ...). The cashier tells the customer their number, and the
-  team calls it out when the order is ready. No customer name or phone number is collected.
+- **Cashier screen**: enter the customer's name, tap items (lemonade, chicken pastry, games), and
+  record how they paid. Each order gets a number (#1, #2, ...), and the team calls out the name and
+  number when the order is ready. No phone number is collected.
 - **No payments are processed.** The system only *records* the payment: method
   (cash, Zelle, Venmo, your own card reader...), whether it's paid now or at pickup,
   the amount received, and the change due.
@@ -46,7 +46,7 @@ while this is on.
 Follow **[EMAIL_SETUP.md](EMAIL_SETUP.md)** (about 10 minutes with Gmail). It covers creating an App Password,
 the `.env` lines, and testing with `npm run test-email`.
 
-Each email subject looks like `Order #7 - $10.00 - 2:14 PM`, so your inbox sorts
+Each email subject looks like `Order #7 - Maria - $10.00 - 2:14 PM`, so your inbox sorts
 in the same order customers ordered.
 
 ## Change the menu

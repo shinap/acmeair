@@ -45,7 +45,7 @@ function render() {
   const valid = orders.filter((o) => o.status !== 'cancelled');
   const collected = valid.filter((o) => o.payment.status === 'paid').reduce((s, o) => s + o.total, 0);
   const owed = valid.filter((o) => o.payment.status === 'unpaid').reduce((s, o) => s + o.total, 0);
-  $('stats').innerHTML = `<strong>${active.length}</strong> in line &middot; ${valid.length} orders today &middot; `
+  $('stats').innerHTML = `<strong>${active.length}</strong> in line &middot; ${valid.length} order${valid.length === 1 ? '' : 's'} today &middot; `
     + `${money(collected)} collected${owed ? ` &middot; <strong>${money(owed)} unpaid</strong>` : ''}`;
 
   const shown = $('showDone').checked ? orders : active;
@@ -54,6 +54,7 @@ function render() {
     <article class="panel order status-${o.status}${o.id === nextId ? ' next' : ''}">
       <div class="num">#${o.number}<small>${clock(o.createdAt)}<br>${waited(o.createdAt)}</small></div>
       <div>
+        <div class="who">${esc(o.customerName)}</div>
         <div>
           <span class="badge status">${o.id === nextId ? 'Next up &middot; ' : ''}${STATUS_LABEL[o.status]}</span>
           ${o.payment.status === 'paid'

@@ -1,7 +1,7 @@
 # Setting up order emails
 
 Every order is emailed to **lrcncsocial@gmail.com** with a subject like
-`Order #7 - $10.00 - 2:14 PM`, so the inbox lists orders in the order they came in.
+`Order #7 - Maria - $10.00 - 2:14 PM`, so the inbox lists orders in the order they came in.
 
 This takes about 10 minutes with Gmail, and there's no approval to wait for.
 

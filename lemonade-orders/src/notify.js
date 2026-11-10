@@ -49,12 +49,13 @@ class Notifier {
   organizerEmail(order) {
     const tz = this.config.timezone;
     const p = order.payment;
-    const subject = `Order #${order.number} - ${money(order.total)} - ${timeLabel(order.createdAt, tz)}`;
+    const subject = `Order #${order.number} - ${order.customerName} - ${money(order.total)} - ${timeLabel(order.createdAt, tz)}`;
     const text = [
       `New order for ${this.config.eventName} (${order.eventDate})`,
       '',
       `Order #:   ${order.number}`,
       `Placed:    ${timeLabel(order.createdAt, tz)}`,
+      `Customer:  ${order.customerName}`,
       '',
       'Items:',
       ...itemLines(order).map((l) => `  - ${l}`),
