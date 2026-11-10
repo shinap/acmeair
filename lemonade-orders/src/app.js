@@ -106,14 +106,22 @@ function createApp({ config, menu, store, notifier }) {
 
   // The order email is sent in the background so the cashier is never kept waiting;
   // the result (sent / failed) is saved on the order and shown in the queue.
+  const sending = new Set(); // order ids with an email in flight, so a double-tapped Retry can't send twice
   const emailOrder = (order) => {
-    const { subject, text } = notifier.organizerEmail(order);
-    return notifier.sendEmail(subject, text)
+    sending.add(order.id);
+    return Promise.resolve()
+      .then(() => {
+        const { subject, text } = notifier.organizerEmail(order);
+        return notifier.sendEmail(subject, text);
+      })
       .then((r) => store.addNotification(order.id, { kind: 'email', ok: true, dryRun: Boolean(r.dryRun) }))
       .catch((err) => {
         console.error(`Email for order ${order.id} failed:`, err.message);
         store.addNotification(order.id, { kind: 'email', ok: false, error: err.message });
-      });
+      })
+      // Never let a failure to save the result (e.g. disk full) crash the server mid-event.
+      .catch((err) => console.error(`Could not record the email result for order ${order.id}:`, err.message))
+      .finally(() => sending.delete(order.id));
   };
 
   app.get('/api/config', (req, res) => {
@@ -171,6 +179,10 @@ function createApp({ config, menu, store, notifier }) {
   app.post('/api/orders/:id/resend-email', (req, res) => {
     const order = store.get(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found.' });
+    const last = order.notifications.filter((n) => n.kind === 'email').pop();
+    if (sending.has(order.id) || (last && last.ok)) {
+      return res.status(409).json({ error: 'This order\'s email was already sent or is being sent now.' });
+    }
     emailOrder(order);
     res.status(202).json({ ok: true });
   });

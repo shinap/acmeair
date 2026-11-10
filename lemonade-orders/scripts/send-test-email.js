@@ -8,12 +8,13 @@ const { Notifier } = require('../src/notify');
 (async () => {
   const { email } = config;
   const missing = [
-    ['SMTP_HOST', email.host], ['SMTP_USER', email.user], ['SMTP_PASS', email.pass], ['ORGANIZER_EMAIL', email.to],
+    ['SMTP_HOST', email.host], ['SMTP_USER', email.user], ['SMTP_PASS', email.pass],
   ].filter(([, v]) => !v).map(([k]) => k);
   if (missing.length) {
     console.error(`Email is not set up yet. In .env, fill in: ${missing.join(', ')}`);
     process.exit(1);
   }
+  console.log(`Orders will be emailed to: ${email.to}  (change ORGANIZER_EMAIL in .env to send elsewhere)`);
   const notifier = new Notifier(config);
   try {
     await notifier.transport.verify();

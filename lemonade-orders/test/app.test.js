@@ -11,7 +11,7 @@ const { OrderStore } = require('../src/store');
 const { Notifier } = require('../src/notify');
 const { createApp } = require('../src/app');
 
-function setup({ staffPin = '', failEmail = false } = {}) {
+function setup({ staffPin = '', failEmail = false, delayMs = 0 } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lemonade-'));
   const config = {
     port: 0, timezone: 'America/New_York', eventName: 'Test Fundraiser', staffPin, dataDir,
@@ -21,6 +21,7 @@ function setup({ staffPin = '', failEmail = false } = {}) {
   const transport = {
     sendMail: async (m) => {
       emails.push(m);
+      if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
       if (failEmail) throw new Error('Invalid login');
       return { messageId: `m${emails.length}` };
     },
@@ -219,4 +220,46 @@ test('emails go to lrcncsocial@gmail.com unless ORGANIZER_EMAIL says otherwise',
     if (saved !== undefined) process.env.ORGANIZER_EMAIL = saved;
     delete require.cache[require.resolve('../src/config')];
   }
+});
+
+test('half-filled email settings stay in test mode instead of failing every order', () => {
+  const base = { host: 'smtp.gmail.com', port: 587, secure: false, user: 'lrcncsocial@gmail.com', from: '', to: 'lrcncsocial@gmail.com' };
+  assert.equal(new Notifier({ email: { ...base, pass: '' } }).emailEnabled, false);
+  assert.equal(new Notifier({ email: { ...base, host: '', pass: 'secret' } }).emailEnabled, false);
+  assert.equal(new Notifier({ email: { ...base, pass: 'secret' } }).emailEnabled, true);
+});
+
+test('retry email is refused once the email went through, and a double tap sends only once', async (t) => {
+  const ok = await setup();
+  t.after(() => ok.server.close());
+  const order = await (await post(ok.base, '/api/orders', sampleOrder())).json();
+  await settle();
+  assert.equal((await post(ok.base, `/api/orders/${order.id}/resend-email`, {})).status, 409);
+  assert.equal(ok.emails.length, 1);
+
+  const bad = await setup({ failEmail: true, delayMs: 50 }); // a slow mail server
+  t.after(() => bad.server.close());
+  const failed = await (await post(bad.base, '/api/orders', sampleOrder())).json();
+  await new Promise((r) => setTimeout(r, 100)); // let the first attempt fail
+  const [first, second] = await Promise.all([
+    post(bad.base, `/api/orders/${failed.id}/resend-email`, {}),
+    post(bad.base, `/api/orders/${failed.id}/resend-email`, {}),
+  ]);
+  assert.deepEqual([first.status, second.status].sort(), [202, 409]);
+  await new Promise((r) => setTimeout(r, 100));
+  assert.equal(bad.emails.length, 2); // the original attempt + one retry
+});
+
+test('an error while building the email is recorded on the order, not lost', async (t) => {
+  const ctx = await setup();
+  t.after(() => ctx.server.close());
+  const realBuild = Notifier.prototype.organizerEmail;
+  Notifier.prototype.organizerEmail = () => { throw new Error('bad order data'); };
+  t.after(() => { Notifier.prototype.organizerEmail = realBuild; });
+  const res = await post(ctx.base, '/api/orders', sampleOrder());
+  assert.equal(res.status, 201);
+  const order = await res.json();
+  await settle();
+  const n = ctx.store.get(order.id).notifications.pop();
+  assert.deepEqual([n.kind, n.ok, n.error], ['email', false, 'bad order data']);
 });

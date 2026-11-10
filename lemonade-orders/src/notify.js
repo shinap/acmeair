@@ -21,7 +21,9 @@ class Notifier {
   constructor(config, { transport } = {}) {
     this.config = config;
     const e = config.email;
-    this.emailEnabled = Boolean((transport || e.host) && e.to);
+    // Live only when the settings are complete; a half-filled .env (e.g. the
+    // App Password still blank) stays in test mode instead of failing every order.
+    this.emailEnabled = Boolean(transport || (e.host && e.to && (!e.user || e.pass)));
     if (this.emailEnabled) {
       this.transport = transport || nodemailer.createTransport({
         host: e.host,

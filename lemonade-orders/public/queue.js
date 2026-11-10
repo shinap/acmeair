@@ -98,7 +98,7 @@ document.addEventListener('click', (e) => {
     const match = config.paymentMethods.find((pm) => pm.toLowerCase() === m.trim().toLowerCase()) || o.payment.method;
     send(`api/orders/${o.id}/payment`, 'PATCH', { method: match, status: 'paid' });
   }
-  if (resend) send(`api/orders/${resend.dataset.resendEmail}/resend-email`, 'POST', {});
+  if (resend) { resend.disabled = true; send(`api/orders/${resend.dataset.resendEmail}/resend-email`, 'POST', {}); }
 });
 
 $('showDone').addEventListener('change', render);
