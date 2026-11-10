@@ -7,7 +7,6 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
-    "test-sms": "node scripts/send-test-text.js",
     "test-email": "node scripts/send-test-email.js"
   },
   "engines": {

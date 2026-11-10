@@ -140,8 +140,7 @@ function resetForm() {
   cart.clear();
   picking.clear();
   method = null;
-  ['customerName', 'phone', 'amountReceived', 'notes'].forEach((id) => { $(id).value = ''; });
-  $('smsOptIn').checked = true;
+  ['customerName', 'amountReceived', 'notes'].forEach((id) => { $(id).value = ''; });
   renderMethods();
   render();
   $('customerName').focus();
@@ -156,8 +155,6 @@ $('order-form').addEventListener('submit', async (e) => {
 
   const body = {
     customerName: $('customerName').value,
-    phone: $('phone').value,
-    smsOptIn: $('smsOptIn').checked,
     items: [...cart.values()].map(({ id, flavors, quantity }) => ({ id, flavors, quantity })),
     payment: { method, status: paid, amountReceived: $('amountReceived').value },
     notes: $('notes').value,
@@ -184,10 +181,11 @@ $('order-form').addEventListener('submit', async (e) => {
   config = await (await fetch('api/config')).json();
   $('event-name').textContent = config.eventName;
   document.title = `Cashier - ${config.eventName}`;
-  if (config.sms !== 'live' || config.email !== 'live') {
-    $('mode').textContent = `Test mode: texts ${config.sms}, email ${config.email}`;
+  if (config.email !== 'live') {
+    $('mode').textContent = 'Test mode: order emails are not being sent';
   }
   $('cashier').value = store.get('cashier') || '';
   renderMethods();
   render();
+  $('customerName').focus();
 }());

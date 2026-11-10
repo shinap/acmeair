@@ -1,17 +1,17 @@
 # Setting up order emails
 
-Every order is emailed to you (the organizer) with a subject like
-`Order #7 - Jane - $10.00 - 2:14 PM`, so your inbox lists orders in the order they came in.
+Every order is emailed to **lrcncsocial@gmail.com** with a subject like
+`Order #7 - Maria - $10.00 - 2:14 PM`, so the inbox lists orders in the order they came in.
 
-This takes about 10 minutes with Gmail. Unlike texting, there's no approval to wait for.
+This takes about 10 minutes with Gmail, and there's no approval to wait for.
 
 ## Two addresses
 
+- **Where orders go** (`ORGANIZER_EMAIL`): `lrcncsocial@gmail.com` by default. You can list several,
+  separated by commas: `lrcncsocial@gmail.com, helper@example.com`.
 - **Sending account** (`SMTP_USER`): the Gmail account the system logs in to and sends from.
-  We suggest a **separate free Gmail** just for the stand, such as `ourlemonadestand@gmail.com`.
-  That way the password saved on the stand laptop can't open your personal email.
-- **Organizer address** (`ORGANIZER_EMAIL`): where orders go. This can be your personal email or any
-  address. You can list several, separated by commas: `you@example.com, helper@example.com`.
+  The simplest setup is to send from **lrcncsocial@gmail.com itself**, so it emails itself.
+  The App Password you create below only works for sending email and can be revoked at any time.
 
 ## Step 1: Turn on 2-Step Verification for the sending account
 
@@ -33,13 +33,13 @@ A personal Gmail account avoids both.
 On the stand laptop, in the `lemonade-orders` folder (copy `.env.example` to `.env` if you haven't):
 
 ```
-ORGANIZER_EMAIL=you@example.com
+ORGANIZER_EMAIL=lrcncsocial@gmail.com
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=ourlemonadestand@gmail.com
+SMTP_USER=lrcncsocial@gmail.com
 SMTP_PASS=abcdefghijklmnop
-EMAIL_FROM=Lemonade Stand <ourlemonadestand@gmail.com>
+EMAIL_FROM=Lemonade Stand <lrcncsocial@gmail.com>
 ```
 
 `SMTP_PASS` is the App Password, **not** the normal Gmail password. Don't paste it into chats or
@@ -55,7 +55,7 @@ You should see `Logged in to smtp.gmail.com...` and get a test email at `ORGANIZ
 The first one may land in **Spam**. If it does, mark it "Not spam" so real orders arrive in your inbox.
 In Gmail you can also add a filter (from the stand's address → Never send to Spam, apply a label).
 
-Then run `npm start`. Once texts are also set up, the "Test mode" badge disappears.
+Then run `npm start`. The "Test mode" badge is gone once email is set up.
 
 ### If the test fails
 
