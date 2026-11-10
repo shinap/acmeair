@@ -18,7 +18,6 @@ app.listen(config.port, () => {
   console.log(`  Cashier:      http://localhost:${config.port}/`);
   console.log(`  Order queue:  http://localhost:${config.port}/queue.html`);
   if (lan) console.log(`  Other devices on this Wi-Fi: http://${lan.address}:${config.port}/`);
-  console.log(`  Texts:  ${notifier.smsEnabled ? 'LIVE (Twilio)' : 'dry run - printed here, not sent'}`);
-  console.log(`  Email:  ${notifier.emailEnabled ? `LIVE to ${config.email.to}` : 'dry run - printed here, not sent'}`);
+  console.log(`  Email:  ${notifier.emailEnabled ? `LIVE to ${config.email.to}` : `dry run - printed here, not sent (would go to ${config.email.to})`}`);
   if (!config.staffPin) console.log('  Warning: STAFF_PIN is not set, so anyone on the network can open these pages.');
 });

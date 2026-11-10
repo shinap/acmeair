@@ -3,7 +3,6 @@
 const crypto = require('crypto');
 const path = require('path');
 const express = require('express');
-const { normalizePhone } = require('./phone');
 const { STATUSES } = require('./store');
 
 const round2 = (n) => Math.round(n * 100) / 100;
@@ -28,17 +27,7 @@ function pinGuard(pin) {
 }
 
 /** Turn the cashier's form into a trusted order (prices always come from the menu, never the browser). */
-function buildOrder(body, { menu, defaultCountryCode }) {
-  const customerName = cleanText(body.customerName, 60);
-  if (!customerName) throw new ValidationError('Customer name is required.');
-
-  let phone = null;
-  if (cleanText(body.phone, 30)) {
-    phone = normalizePhone(body.phone, defaultCountryCode);
-    if (!phone) throw new ValidationError('That phone number does not look right.');
-  }
-  const smsOptIn = Boolean(phone && body.smsOptIn);
-
+function buildOrder(body, { menu }) {
   const byId = new Map(menu.items.map((i) => [i.id, i]));
   const items = [];
   for (const line of Array.isArray(body.items) ? body.items : []) {
@@ -63,9 +52,6 @@ function buildOrder(body, { menu, defaultCountryCode }) {
   const payment = buildPayment(body.payment, total, menu);
 
   return {
-    customerName,
-    phone,
-    smsOptIn,
     items,
     total,
     payment,
@@ -114,26 +100,17 @@ function createApp({ config, menu, store, notifier }) {
   app.use(pinGuard(config.staffPin));
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
-  // Notifications run in the background so the cashier is never kept waiting;
-  // each result (sent / failed) is saved on the order and shown in the queue.
-  const notify = (order, kind) => {
-    const task = (async () => {
-      if (kind === 'email') {
-        const { subject, text } = notifier.organizerEmail(order);
-        return notifier.sendEmail(subject, text);
-      }
-      if (!order.phone || !order.smsOptIn) return null;
-      const body = kind === 'ready' ? notifier.orderReadySms(order) : notifier.orderPlacedSms(order);
-      return notifier.sendSms(order.phone, body);
-    })();
-    return task
-      .then((r) => r && store.addNotification(order.id, { kind, ok: true, dryRun: Boolean(r.dryRun) }))
+  // The order email is sent in the background so the cashier is never kept waiting;
+  // the result (sent / failed) is saved on the order and shown in the queue.
+  const emailOrder = (order) => {
+    const { subject, text } = notifier.organizerEmail(order);
+    return notifier.sendEmail(subject, text)
+      .then((r) => store.addNotification(order.id, { kind: 'email', ok: true, dryRun: Boolean(r.dryRun) }))
       .catch((err) => {
-        console.error(`Notification "${kind}" for order ${order.id} failed:`, err.message);
-        store.addNotification(order.id, { kind, ok: false, error: err.message });
+        console.error(`Email for order ${order.id} failed:`, err.message);
+        store.addNotification(order.id, { kind: 'email', ok: false, error: err.message });
       });
   };
-  app.locals.notify = notify;
 
   app.get('/api/config', (req, res) => {
     res.json({
@@ -142,17 +119,14 @@ function createApp({ config, menu, store, notifier }) {
       timezone: config.timezone,
       items: menu.items,
       paymentMethods: menu.paymentMethods,
-      sms: notifier.smsEnabled ? 'live' : 'dry-run',
       email: notifier.emailEnabled ? 'live' : 'dry-run',
     });
   });
 
   app.post('/api/orders', (req, res) => {
-    const fields = buildOrder(req.body || {}, { menu, defaultCountryCode: config.defaultCountryCode });
-    const order = store.create(fields);
+    const order = store.create(buildOrder(req.body || {}, { menu }));
     res.status(201).json(order);
-    notify(order, 'placed');
-    notify(order, 'email');
+    emailOrder(order);
   });
 
   app.get('/api/orders', (req, res) => {
@@ -162,9 +136,9 @@ function createApp({ config, menu, store, notifier }) {
 
   app.get('/api/orders.csv', (req, res) => {
     const eventDate = req.query.date || store.today();
-    const header = ['order_number', 'placed_at', 'customer', 'phone', 'items', 'total', 'payment_method', 'payment_status', 'amount_received', 'change', 'status', 'notes', 'cashier'];
+    const header = ['order_number', 'placed_at', 'items', 'total', 'payment_method', 'payment_status', 'amount_received', 'change', 'status', 'notes', 'cashier'];
     const rows = store.list({ eventDate }).map((o) => [
-      o.number, o.createdAt, o.customerName, o.phone || '',
+      o.number, o.createdAt,
       o.items.map((i) => `${i.quantity} x ${i.name}`).join('; '),
       o.total.toFixed(2), o.payment.method, o.payment.status,
       o.payment.amountReceived.toFixed(2), o.payment.change.toFixed(2),
@@ -177,12 +151,9 @@ function createApp({ config, menu, store, notifier }) {
   app.patch('/api/orders/:id/status', (req, res) => {
     const { status } = req.body || {};
     if (!STATUSES.includes(status)) throw new ValidationError('Unknown status.');
-    const before = store.get(req.params.id);
-    if (!before) return res.status(404).json({ error: 'Order not found.' });
-    const wasReady = before.status === 'ready';
     const order = store.setStatus(req.params.id, status);
+    if (!order) return res.status(404).json({ error: 'Order not found.' });
     res.json(order);
-    if (status === 'ready' && !wasReady) notify(order, 'ready');
   });
 
   app.patch('/api/orders/:id/payment', (req, res) => {
@@ -193,12 +164,10 @@ function createApp({ config, menu, store, notifier }) {
     res.json(order);
   });
 
-  app.post('/api/orders/:id/resend', (req, res) => {
+  app.post('/api/orders/:id/resend-email', (req, res) => {
     const order = store.get(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found.' });
-    const kind = (req.body || {}).kind;
-    if (!['placed', 'ready', 'email'].includes(kind)) throw new ValidationError('Unknown notification.');
-    notify(order, kind);
+    emailOrder(order);
     res.status(202).json({ ok: true });
   });
 

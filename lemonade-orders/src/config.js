@@ -22,13 +22,6 @@ module.exports = {
   eventName: env.EVENT_NAME || 'Lemonade Fundraiser',
   staffPin: env.STAFF_PIN || '',
   dataDir: env.DATA_DIR || path.join(__dirname, '..', 'data'),
-  defaultCountryCode: env.DEFAULT_COUNTRY_CODE || '1',
-  twilio: {
-    accountSid: env.TWILIO_ACCOUNT_SID || '',
-    authToken: env.TWILIO_AUTH_TOKEN || '',
-    from: env.TWILIO_FROM_NUMBER || '',
-    messagingServiceSid: env.TWILIO_MESSAGING_SERVICE_SID || '',
-  },
   email: {
     host: env.SMTP_HOST || '',
     port: Number(env.SMTP_PORT || 587),
@@ -36,6 +29,7 @@ module.exports = {
     user: env.SMTP_USER || '',
     pass: env.SMTP_PASS || '',
     from: env.EMAIL_FROM || env.SMTP_USER || '',
-    to: env.ORGANIZER_EMAIL || '',
+    // Every order is emailed here.
+    to: env.ORGANIZER_EMAIL || 'lrcncsocial@gmail.com',
   },
 };

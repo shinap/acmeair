@@ -140,11 +140,9 @@ function resetForm() {
   cart.clear();
   picking.clear();
   method = null;
-  ['customerName', 'phone', 'amountReceived', 'notes'].forEach((id) => { $(id).value = ''; });
-  $('smsOptIn').checked = true;
+  ['amountReceived', 'notes'].forEach((id) => { $(id).value = ''; });
   renderMethods();
   render();
-  $('customerName').focus();
 }
 
 $('order-form').addEventListener('submit', async (e) => {
@@ -155,9 +153,6 @@ $('order-form').addEventListener('submit', async (e) => {
   store.set('cashier', $('cashier').value);
 
   const body = {
-    customerName: $('customerName').value,
-    phone: $('phone').value,
-    smsOptIn: $('smsOptIn').checked,
     items: [...cart.values()].map(({ id, flavors, quantity }) => ({ id, flavors, quantity })),
     payment: { method, status: paid, amountReceived: $('amountReceived').value },
     notes: $('notes').value,
@@ -171,7 +166,7 @@ $('order-form').addEventListener('submit', async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Could not place the order.');
     const change = data.payment.change > 0 ? ` Give ${money(data.payment.change)} change.` : '';
-    toast(`Order #${data.number} placed for ${data.customerName}.${change}`);
+    toast(`Order #${data.number} placed. Tell the customer their number is ${data.number}.${change}`);
     resetForm();
   } catch (err) {
     $('error').textContent = err.message;
@@ -184,8 +179,8 @@ $('order-form').addEventListener('submit', async (e) => {
   config = await (await fetch('api/config')).json();
   $('event-name').textContent = config.eventName;
   document.title = `Cashier - ${config.eventName}`;
-  if (config.sms !== 'live' || config.email !== 'live') {
-    $('mode').textContent = `Test mode: texts ${config.sms}, email ${config.email}`;
+  if (config.email !== 'live') {
+    $('mode').textContent = 'Test mode: order emails are not being sent';
   }
   $('cashier').value = store.get('cashier') || '';
   renderMethods();

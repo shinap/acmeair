@@ -2,17 +2,17 @@
 
 A small ordering system for the monthly (second-Sunday) lemonade fundraiser.
 
-- **Cashier screen**: tap items (lemonade, chicken pastry, games), enter the
-  customer's name and mobile number, and record how they paid.
+- **Cashier screen**: tap items (lemonade, chicken pastry, games) and record how the customer paid.
+  Each order gets a number (#1, #2, ...). The cashier tells the customer their number, and the
+  team calls it out when the order is ready. No customer name or phone number is collected.
 - **No payments are processed.** The system only *records* the payment: method
   (cash, Zelle, Venmo, your own card reader...), whether it's paid now or at pickup,
   the amount received, and the change due.
-- **Text to the customer** when the order is placed and again when it's marked ready.
-- **Email to you** for every order, with the order number and time, so the team can
-  work in order.
+- **Email for every order** to **lrcncsocial@gmail.com**, with the order number and time,
+  so the team can work in order. (Change `ORGANIZER_EMAIL` in `.env` to send it elsewhere.)
 - **Order queue screen**: orders sorted first come, first served. The next order to make is
   outlined, and you move each one through *Start making → Ready → Picked up*.
-  Unpaid orders are flagged in red. Failed texts or emails show up with a Retry button.
+  Unpaid orders are flagged in red. A failed email shows up with a Retry button.
 - Order numbers restart at #1 each event day. You can download a CSV of the day's
   orders for your records.
 
@@ -37,22 +37,16 @@ The server window shows the links:
 Set `STAFF_PIN` in `.env` so customers on the same Wi-Fi can't open the pages.
 The browser will ask for a username (anything works) and the PIN as the password.
 
-Until the text and email settings are filled in, the app runs in **test mode**.
-Nothing is sent, and every text and email is printed in the server window. The
-pages show a "Test mode" badge while this is on.
-
-## Set up texts (Twilio)
-
-Follow **[TWILIO_SETUP.md](TWILIO_SETUP.md)**. It covers the account and phone number, the US carrier registration
-(with ready-to-paste form answers), the `.env` keys, and testing with `npm run test-sms -- <your number>`.
-Start at least two weeks before you need it, because registration approval takes time.
+Until the email settings are filled in, the app runs in **test mode**: nothing is sent,
+and each order email is printed in the server window. The pages show a "Test mode" badge
+while this is on.
 
 ## Set up email
 
 Follow **[EMAIL_SETUP.md](EMAIL_SETUP.md)** (about 10 minutes with Gmail). It covers creating an App Password,
 the `.env` lines, and testing with `npm run test-email`.
 
-Each email subject looks like `Order #7 - Jane - $10.00 - 2:14 PM`, so your inbox sorts
+Each email subject looks like `Order #7 - $10.00 - 2:14 PM`, so your inbox sorts
 in the same order customers ordered.
 
 ## Change the menu
