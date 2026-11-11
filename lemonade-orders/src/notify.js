@@ -30,6 +30,10 @@ class Notifier {
         port: e.port,
         secure: e.secure,
         auth: e.user ? { user: e.user, pass: e.pass } : undefined,
+        // Give up quickly on a bad connection; failed emails are retried automatically.
+        connectionTimeout: 15 * 1000,
+        greetingTimeout: 15 * 1000,
+        socketTimeout: 30 * 1000,
       });
     }
   }

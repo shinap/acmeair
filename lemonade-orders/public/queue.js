@@ -23,8 +23,10 @@ function emailBadge(o) {
   if (!n) return '';
   return n.ok
     ? `<span class="badge ok">Email ${n.dryRun ? 'logged (test mode)' : 'sent'}</span>`
-    : `<span class="badge fail" title="${esc(n.error)}">Email failed</span>
-       <button class="btn" data-resend-email="${o.id}">Retry email</button>`;
+    : `<span class="badge fail" title="${esc(n.error)}">${n.loginRefused
+        ? 'Email failed: Gmail refused the login. Check the App Password in .env, then restart'
+        : `Email not sent yet${n.attempts > 1 ? ` (${n.attempts} tries)` : ''}, retrying automatically`}</span>
+       <button class="btn" data-resend-email="${o.id}">Retry now</button>`;
 }
 
 function actions(o) {

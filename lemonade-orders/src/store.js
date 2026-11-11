@@ -76,7 +76,15 @@ class OrderStore {
   addNotification(id, entry) {
     const order = this.get(id);
     if (!order) return;
-    order.notifications.push({ at: new Date().toISOString(), ...entry });
+    const now = new Date().toISOString();
+    const last = order.notifications[order.notifications.length - 1];
+    if (!entry.ok && last && last.kind === entry.kind && !last.ok) {
+      // Another failed try (e.g. still offline): update the existing entry rather than
+      // adding one per automatic retry, so the order file doesn't keep growing.
+      Object.assign(last, entry, { at: now, attempts: (last.attempts || 1) + 1 });
+    } else {
+      order.notifications.push({ at: now, ...entry, ...(!entry.ok && { attempts: 1 }) });
+    }
     this._save();
   }
 

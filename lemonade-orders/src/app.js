@@ -107,6 +107,9 @@ function createApp({ config, menu, store, notifier }) {
   // The order email is sent in the background so the cashier is never kept waiting;
   // the result (sent / failed) is saved on the order and shown in the queue.
   const sending = new Set(); // order ids with an email in flight, so a double-tapped Retry can't send twice
+  // Set when Gmail refuses the login. The App Password only changes on restart, so
+  // automatic retries pause until then instead of hammering Gmail with a bad password.
+  let loginRefused = false;
   const emailOrder = (order) => {
     sending.add(order.id);
     return Promise.resolve()
@@ -117,12 +120,45 @@ function createApp({ config, menu, store, notifier }) {
       .then((r) => store.addNotification(order.id, { kind: 'email', ok: true, dryRun: Boolean(r.dryRun) }))
       .catch((err) => {
         console.error(`Email for order ${order.id} failed:`, err.message);
-        store.addNotification(order.id, { kind: 'email', ok: false, error: err.message });
+        const refused = err.code === 'EAUTH' || err.responseCode === 535;
+        if (refused) loginRefused = true;
+        store.addNotification(order.id, {
+          kind: 'email', ok: false, error: err.message, ...(refused && { loginRefused: true }),
+        });
       })
       // Never let a failure to save the result (e.g. disk full) crash the server mid-event.
       .catch((err) => console.error(`Could not record the email result for order ${order.id}:`, err.message))
       .finally(() => sending.delete(order.id));
   };
+
+  const lastEmail = (order) => order.notifications.filter((n) => n.kind === 'email').pop();
+
+  // Automatic resend: every minute, retry orders whose email failed (e.g. no internet
+  // at an event), oldest first. If one still fails, the rest wait for the next round.
+  let retrying = false;
+  const retryFailedEmails = async () => {
+    if (retrying || loginRefused) return 0;
+    retrying = true;
+    let sent = 0;
+    try {
+      const due = store.list().filter((o) => {
+        const last = lastEmail(o);
+        return last && !last.ok && o.status !== 'cancelled' && !sending.has(o.id);
+      });
+      for (const order of due) {
+        await emailOrder(order);
+        if (!lastEmail(store.get(order.id)).ok) break;
+        sent += 1;
+      }
+      if (sent) console.log(`Resent ${sent} order email${sent === 1 ? '' : 's'} that failed earlier.`);
+    } finally {
+      retrying = false;
+    }
+    return sent;
+  };
+  app.locals.retryFailedEmails = retryFailedEmails;
+  const retryMs = config.emailRetryMs ?? 60 * 1000;
+  if (retryMs > 0) setInterval(() => { retryFailedEmails().catch(() => {}); }, retryMs).unref();
 
   app.get('/api/config', (req, res) => {
     res.json({

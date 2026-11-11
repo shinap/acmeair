@@ -11,10 +11,11 @@ const { OrderStore } = require('../src/store');
 const { Notifier } = require('../src/notify');
 const { createApp } = require('../src/app');
 
-function setup({ staffPin = '', failEmail = false, delayMs = 0 } = {}) {
+// mail.down = true makes the fake mail server act offline; mail.refuseLogin = true makes it reject the password.
+function setup({ staffPin = '', failEmail = false, delayMs = 0, emailRetryMs = 0, mail = {} } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lemonade-'));
   const config = {
-    port: 0, timezone: 'America/New_York', eventName: 'Test Fundraiser', staffPin, dataDir,
+    port: 0, timezone: 'America/New_York', eventName: 'Test Fundraiser', staffPin, dataDir, emailRetryMs,
     email: { host: '', port: 587, secure: false, user: '', pass: '', from: 'stand@example.com', to: 'lrcncsocial@gmail.com' },
   };
   const emails = [];
@@ -23,6 +24,8 @@ function setup({ staffPin = '', failEmail = false, delayMs = 0 } = {}) {
       emails.push(m);
       if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
       if (failEmail) throw new Error('Invalid login');
+      if (mail.down) throw Object.assign(new Error('getaddrinfo ENOTFOUND smtp.gmail.com'), { code: 'EDNS' });
+      if (mail.refuseLogin) throw Object.assign(new Error('Invalid login: 535 5.7.8'), { code: 'EAUTH', responseCode: 535 });
       return { messageId: `m${emails.length}` };
     },
   };
@@ -32,7 +35,7 @@ function setup({ staffPin = '', failEmail = false, delayMs = 0 } = {}) {
   return new Promise((resolve) => {
     const server = app.listen(0, () => {
       const base = `http://127.0.0.1:${server.address().port}`;
-      resolve({ base, server, store, emails, dataDir });
+      resolve({ base, server, store, emails, dataDir, app });
     });
   });
 }
@@ -260,6 +263,56 @@ test('an error while building the email is recorded on the order, not lost', asy
   assert.equal(res.status, 201);
   const order = await res.json();
   await settle();
-  const n = ctx.store.get(order.id).notifications.pop();
+  const n = ctx.store.get(order.id).notifications.at(-1);
   assert.deepEqual([n.kind, n.ok, n.error], ['email', false, 'bad order data']);
+});
+
+test('emails that failed while offline are resent automatically once back online', async (t) => {
+  const mail = { down: true };
+  const ctx = await setup({ mail });
+  t.after(() => ctx.server.close());
+  const first = await (await post(ctx.base, '/api/orders', sampleOrder({ customerName: 'Ann' }))).json();
+  const second = await (await post(ctx.base, '/api/orders', sampleOrder({ customerName: 'Ben' }))).json();
+  const cancelled = await (await post(ctx.base, '/api/orders', sampleOrder({ customerName: 'Cal' }))).json();
+  await patch(ctx.base, `/api/orders/${cancelled.id}/status`, { status: 'cancelled' });
+  await settle();
+
+  // Still offline: one try, then the rest wait (no pile-up of entries on the order).
+  assert.equal(await ctx.app.locals.retryFailedEmails(), 0);
+  const ann = ctx.store.get(first.id).notifications;
+  assert.equal(ann.length, 1);
+  assert.deepEqual([ann[0].ok, ann[0].attempts], [false, 2]);
+  assert.equal(ctx.store.get(second.id).notifications[0].attempts, 1);
+
+  // Back online: everything not cancelled goes out, oldest first.
+  mail.down = false;
+  const before = ctx.emails.length;
+  assert.equal(await ctx.app.locals.retryFailedEmails(), 2);
+  assert.deepEqual(ctx.emails.slice(before).map((m) => m.subject.split(' - ')[1]), ['Ann', 'Ben']);
+  assert.equal(ctx.store.get(first.id).notifications.at(-1).ok, true);
+  assert.equal(ctx.store.get(cancelled.id).notifications.at(-1).ok, false);
+  assert.equal(await ctx.app.locals.retryFailedEmails(), 0); // nothing left to send
+});
+
+test('the resend runs on its own timer', async (t) => {
+  const mail = { down: true };
+  const ctx = await setup({ mail, emailRetryMs: 40 });
+  t.after(() => ctx.server.close());
+  const order = await (await post(ctx.base, '/api/orders', sampleOrder())).json();
+  await settle();
+  mail.down = false;
+  await new Promise((r) => setTimeout(r, 150));
+  assert.equal(ctx.store.get(order.id).notifications.at(-1).ok, true);
+});
+
+test('automatic resend pauses when Gmail refuses the login, and the queue says why', async (t) => {
+  const mail = { refuseLogin: true };
+  const ctx = await setup({ mail });
+  t.after(() => ctx.server.close());
+  const order = await (await post(ctx.base, '/api/orders', sampleOrder())).json();
+  await settle();
+  const tries = ctx.emails.length;
+  assert.equal(await ctx.app.locals.retryFailedEmails(), 0);
+  assert.equal(ctx.emails.length, tries); // didn't try Gmail again with the bad password
+  assert.equal(ctx.store.get(order.id).notifications.at(-1).loginRefused, true);
 });
