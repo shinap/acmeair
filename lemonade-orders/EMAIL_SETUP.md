@@ -9,18 +9,19 @@ This takes about 10 minutes with Gmail, and there's no approval to wait for.
 
 - **Where orders go** (`ORGANIZER_EMAIL`): `lrcncsocial@gmail.com` by default. You can list several,
   separated by commas: `lrcncsocial@gmail.com, helper@example.com`.
-- **Sending account** (`SMTP_USER`): the Gmail account the system logs in to and sends from.
-  The simplest setup is to send from **lrcncsocial@gmail.com itself**, so it emails itself.
-  The App Password you create below only works for sending email and can be revoked at any time.
+- **Sending account** (`SMTP_USER`): **mylemonadeorders@gmail.com**, a Gmail made just for the stand.
+  The system logs in to it to send each order. Because it's separate, the password saved on the
+  stand laptop can't open lrcncsocial@gmail.com.
 
 ## Step 1: Turn on 2-Step Verification for the sending account
 
-Sign in to the sending Gmail account, open <https://myaccount.google.com/security>, and turn on
+Sign in to **mylemonadeorders@gmail.com**, open <https://myaccount.google.com/security>, and turn on
 **2-Step Verification**. Google only offers App Passwords once this is on.
 
 ## Step 2: Create an App Password
 
-1. Go to <https://myaccount.google.com/apppasswords> while signed in to the sending account.
+1. Go to <https://myaccount.google.com/apppasswords> while signed in to **mylemonadeorders@gmail.com**
+   (check the account shown in the top-right corner).
 2. Type a name such as `Lemonade orders` and click **Create**.
 3. Google shows a **16-letter password** once. Copy it (spaces don't matter).
 
@@ -37,9 +38,9 @@ ORGANIZER_EMAIL=lrcncsocial@gmail.com
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=lrcncsocial@gmail.com
+SMTP_USER=mylemonadeorders@gmail.com
 SMTP_PASS=abcdefghijklmnop
-EMAIL_FROM=Lemonade Stand <lrcncsocial@gmail.com>
+EMAIL_FROM=Lemonade Stand <mylemonadeorders@gmail.com>
 ```
 
 `SMTP_PASS` is the App Password, **not** the normal Gmail password. Don't paste it into chats or
@@ -53,7 +54,8 @@ npm run test-email
 
 You should see `Logged in to smtp.gmail.com...` and get a test email at `ORGANIZER_EMAIL`.
 The first one may land in **Spam**. If it does, mark it "Not spam" so real orders arrive in your inbox.
-In Gmail you can also add a filter (from the stand's address → Never send to Spam, apply a label).
+In the lrcncsocial@gmail.com inbox you can also add a filter: from `mylemonadeorders@gmail.com` →
+**Never send it to Spam**, and apply a label such as "Lemonade orders".
 
 Then run `npm start`. The "Test mode" badge is gone once email is set up.
 
